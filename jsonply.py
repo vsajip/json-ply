@@ -421,6 +421,8 @@ class JsonParser(object):
       lexer = self.lexer
     return self.parser.parse(data, lexer=lexer, *args, **kwargs)
 
+# Maintain a reusable parser instance
+parser = None
 
 def parse(s):
   '''Parse a string-like object and return the corresponding python structure.
@@ -430,7 +432,10 @@ def parse(s):
   Returns:
     A python dict or array
   '''
-  return JsonParser().parse(s)
+  global parser
+  if parser is None:
+    parser = JsonParser()
+  return parser.parse(s)
 
 
 def parse_file(f):
