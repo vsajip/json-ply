@@ -140,7 +140,7 @@ class JsonLexer(object):
   # says '%x5D-10FFFF' but most pythons by default will not handle that
   t_string_UNESCAPED = r'[\x20-\x21,\x23-\x5B,\x5D-\xFF]+'
 
-  # Exists the string state on an unescaped closing quotation mark
+  # Exits the string state on an unescaped closing quotation mark
   def t_string_QUOTATION_MARK(self, t):
     r'\x22'  # '"'
     t.lexer.pop_state()
