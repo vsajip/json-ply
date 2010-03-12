@@ -104,7 +104,12 @@ class JsonLexer(object):
   )
 
   def t_ANY_error(self, t): 
-    print "Illegal character '%s'" % t.value[0] 
+    last_cr = self.lexer.lexdata.rfind('\n', 0, t.lexpos)
+    if last_cr < 0:
+      last_cr = 0
+    column = (t.lexpos - last_cr) + 1
+    print "Illegal character '%s' at line %d pos %d" % (
+      t.value[0], t.lineno, column)
     t.lexer.skip(1) 
 
   # Skips over '\s', '\t', '\n', and '\r' characters in the default state
@@ -138,7 +143,10 @@ class JsonLexer(object):
 
   # TODO(dewitt): Verify that this matches the correct range, the spec
   # says '%x5D-10FFFF' but most pythons by default will not handle that
-  t_string_UNESCAPED = r'[\x20-\x21,\x23-\x5B,\x5D-\xFF]+'
+  def t_string_UNESCAPED(self, t):
+    r'[\x20-\x21,\x23-\x5B,\x5D-\xFF]+'
+    t.value = unicode(t.value, encoding='utf8')
+    return t
 
   # Exits the string state on an unescaped closing quotation mark
   def t_string_QUOTATION_MARK(self, t):
@@ -173,38 +181,37 @@ class JsonLexer(object):
   def t_escaped_BACKSPACE_CHAR(self, t):
     r'\x62'  # 'b'
     t.lexer.pop_state()
-    t.value = chr(0x0008)
+    t.value = unichr(0x0008)
     return t
 
   def t_escaped_FORM_FEED_CHAR(self, t):
     r'\x66'  # 'f'
     t.lexer.pop_state()
-    t.value = chr(0x000c)
+    t.value = unichr(0x000c)
     return t
 
   def t_escaped_CARRIAGE_RETURN_CHAR(self, t):
     r'\x72'  # 'r'
     t.lexer.pop_state()
-    t.value = chr(0x000d)
+    t.value = unichr(0x000d)
     return t
 
   def t_escaped_LINE_FEED_CHAR(self, t):
     r'\x6E'  # 'n'
     t.lexer.pop_state()
-    t.value = chr(0x000a)
+    t.value = unichr(0x000a)
     return t
 
   def t_escaped_TAB_CHAR(self, t):
     r'\x74'  # 't'
     t.lexer.pop_state()
-    t.value = chr(0x0009)
+    t.value = unichr(0x0009)
     return t
 
   def t_escaped_UNICODE_HEX(self, t):
     r'\x75[\x30-\x39,\x41-\x46,\x61-\x66]{4}'  # 'uXXXX'
     t.lexer.pop_state()
     return t
-
 
   def tokenize(self, data, *args, **kwargs):
     '''Invoke the lexer on an input string an return the list of tokens.
@@ -378,7 +385,7 @@ class JsonParser(object):
     if len(p) == 1:
       p[0] = unicode()
     else:
-      p[0] = p[1] + p[2]  
+      p[0] = p[1] + p[2]
 
   def p_char(self, p):
     '''char : UNESCAPED
@@ -394,7 +401,6 @@ class JsonParser(object):
     # slices we use [len(p) - 1] to always take the last value.
     p[0] = p[len(p) - 1]
 
-
   def p_char_unicode_hex(self, p):
     '''char : ESCAPE UNICODE_HEX'''
     # This looks more complicated than it is.  The escaped string is of
@@ -405,7 +411,6 @@ class JsonParser(object):
 
   def p_error(self, p): 
     print "Syntax error at '%s'" % p
-
 
   # Invoke the parser
   def parse(self, data, lexer=None, *args, **kwargs):
